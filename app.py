@@ -7,7 +7,7 @@ from src.agents.agent_core import DecisionAgent
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Evrensel Karar Motoru",
+    page_title="Evrensel Karar Motoru - Akıllı Ajan",
     page_icon="🧠",
     layout="wide"
 )
@@ -25,38 +25,60 @@ def get_llm_client():
 client = get_llm_client()
 agent = DecisionAgent(llm_client=client)
 
-# Arayüz Tasarımı
-st.title("🧠 Evrensel Karar Motoru (Universal Decision Engine)")
-st.markdown("Model-Agnostic mimariyle güçlendirilmiş otonom ajan ve karar destek paneli.")
+# Arayüz Başlığı
+st.title("🧠 Evrensel Karar Motoru (Hafızalı Ajan Modu)")
+st.markdown("Model-Agnostic mimari, otonom araçlar ve kalıcı SQLite hafıza desteğiyle güçlendirilmiş karar destek paneli.")
 
-# Yan Menü (Sidebar) - Geçmiş Kararlar ve Ayarlar
+# Yan Menü (Sidebar)
 st.sidebar.header("⚙️ Kontrol Paneli")
-mode = st.sidebar.radio("Çalışma Modu", ["Ajan Sohbeti", "Geçmiş Kararlar (Veritabanı)"])
+mode = st.sidebar.radio("Çalışma Modu", ["Otonom Sohbet (Hafızalı)", "Geçmiş Kararlar (Veritabanı)"])
 
-if mode == "Ajan Sohbeti":
-    st.subheader("Otonom Ajan ile İletişim")
+if mode == "Otonom Sohbet (Hafızalı)":
+    st.subheader("🤖 Ajan ile Sohbet Oturumu")
     
-    user_prompt = st.text_input("Ajana iletmek istediğiniz prompt veya soru:", "Merhaba, şu an saat kaç?")
-    
-    if st.button("Karar Üret / Çalıştır"):
-        if user_prompt.strip():
-            with st.spinner("Ajan çalışıyor ve karar üretiyor..."):
-                # Ajanı çalıştır
+    # Veritabanından geçmiş sohbetleri yükle ve Streamlit session_state içine aktar
+    if "messages" not in st.session_state:
+        db_history = db.get_chat_history(limit=50)
+        st.session_state.messages = []
+        if db_history:
+            for role, content in db_history:
+                st.session_state.messages.append({"role": role, "content": content})
+        else:
+            # Varsayılan Karşılama
+            welcome_msg = "Merhaba! Ben Evrensel Karar Motoru ajanıyım. Size nasıl yardımcı olabilirim?"
+            st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
+            db.save_chat_message("assistant", welcome_msg)
+
+    # Sohbet geçmişini ekranda göster
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Kullanıcıdan yeni girdi al
+    if user_prompt := st.chat_input("Bir şeyler sorun veya komut verin (örn: 'Şu an saat kaç?')..."):
+        # Kullanıcı mesajını ekrana ekle ve kaydet
+        st.session_state.messages.append({"role": "user", "content": user_prompt})
+        db.save_chat_message("user", user_prompt)
+        
+        with st.chat_message("user"):
+            st.markdown(user_prompt)
+
+        # Ajan yanıtını üret
+        with st.chat_message("assistant"):
+            with st.spinner("Ajan düşünüyor ve karar üretiyor..."):
                 response = agent.run(user_prompt)
                 
-                # Veritabanına kaydet
-                db.save_decision(user_prompt, response)
+            st.markdown(response)
             
-            st.success("İşlem tamamlandı ve veritabanına kaydedildi!")
-            
-            # Sonucu Göster
-            st.markdown("### 🤖 Ajanın Yanıtı:")
-            st.info(response)
-        else:
-            st.warning("Lütfen geçerli bir prompt girin.")
+        # Asistan yanıtını kaydet
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        db.save_chat_message("assistant", response)
+        
+        # Kararı ayrıca karar günlüklerine de işleyelim
+        db.save_decision(user_prompt, response)
 
 elif mode == "Geçmiş Kararlar (Veritabanı)":
-    st.subheader("📚 Kayıtlı Karar Geçmişi")
+    st.subheader("📚 Kayıtlı Karar Geçmişi ve Loglar")
     
     limit = st.sidebar.slider("Gösterilecek Kayıt Sayısı", 1, 20, 5)
     recent_records = db.get_recent_decisions(limit=limit)
