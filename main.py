@@ -2,6 +2,7 @@ import os
 from src.adapters.mock_client import MockClient
 from src.adapters.huggingface_client import HuggingFaceClient
 from src.database.db_manager import DatabaseManager
+from src.agents.agent_core import DecisionAgent
 
 def get_llm_client():
     use_mock = os.getenv("USE_MOCK", "true").lower() == "true"
@@ -11,23 +12,26 @@ def get_llm_client():
         return HuggingFaceClient(model_name="Qwen/Qwen2.5-7B-Instruct")
 
 def main():
-    print("Evrensel Karar Motoru başlatılıyor...")
+    print("Evrensel Karar Motoru (Ajan Modu) başlatılıyor...")
     
-    # Veritabanı yöneticisini ve LLM istemcisini hazırlıyoruz
     db = DatabaseManager()
     client = get_llm_client()
     
-    prompt = "Merhaba! Sen kimsin ve hangi mimariyle çalışıyorsun?"
+    # Ajanı başlatıyoruz
+    agent = DecisionAgent(llm_client=client)
+    
+    prompt = "Merhaba, şu an saat kaç?"
     print(f"Gönderilen Prompt: {prompt}\n")
     
-    # Yanıtı al
-    response = client.generate_response(prompt)
-    print("--- Modelin Yanıtı ---")
+    # Ajan üzerinden yanıtı alıyoruz (Gerekirse araç çalıştıracak)
+    response = agent.run(prompt)
+    
+    print("--- Ajanın Yanıtı ---")
     print(response)
     
     # Veritabanına kaydet
     db.save_decision(prompt, response)
-    print("\n[Bilgi]: Karar veritabanına başarıyla kaydedildi.")
+    print("\n[Bilgi]: Ajan kararı veritabanına başarıyla kaydedildi.")
 
 if __name__ == "__main__":
     main()
