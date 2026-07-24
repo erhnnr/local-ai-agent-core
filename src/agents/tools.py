@@ -1,52 +1,45 @@
-import datetime
-import os
+import platform
+import psutil
+from datetime import datetime
 
 class ToolRegistry:
-    """
-    Yapay zeka modelinin çağırabileceği araçların (fonksiyonların) 
-    kayıtlı olduğu ve yönetildiği sınıf.
-    """
+    """Ajanın kullanabileceği tüm araçların (tools) kayıt ve yürütme merkezi."""
+    
+    @staticmethod
+    def execute_tool(tool_name: str, arg: str = "") -> str:
+        if tool_name == "get_current_time":
+            return ToolRegistry.get_current_time()
+        elif tool_name == "read_local_file":
+            return ToolRegistry.read_local_file(arg)
+        elif tool_name == "get_system_info":
+            return ToolRegistry.get_system_info()
+        return f"Hata: '{tool_name}' adında bir araç bulunamadı."
+
     @staticmethod
     def get_current_time() -> str:
-        """Sistemdeki anı ve tarihi döndürür."""
-        now = datetime.datetime.now()
-        return now.strftime("%Y-%m-%d %H:%M:%S")
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod
-    def calculate_expression(expression: str) -> str:
-        """Güvenli temel matematiksel hesaplamalar yapar."""
+    def read_local_file(filepath: str) -> str:
         try:
-            allowed_chars = "0123456789+-*/(). "
-            if not all(c in allowed_chars for c in expression):
-                return "Hata: Geçersiz karakterler içeriyor."
-            result = eval(expression)
-            return str(result)
+            with open(filepath, "r", encoding="utf-8") as f:
+                return f.read()
         except Exception as e:
-            return f"Hesaplama hatası: {e}"
+            return f"Dosya okuma hatası: {str(e)}"
 
     @staticmethod
-    def read_local_file(file_path: str) -> str:
-        """Proje dizinindeki bir metin veya kod dosyasının içeriğini okur."""
+    def get_system_info() -> str:
+        """Bilgisayarın işletim sistemi ve temel donanım/bellek bilgilerini döndürür."""
         try:
-            # Güvenlik için sadece proje klasörü içi veya güvenli yollar denetlenebilir
-            if not os.path.exists(file_path):
-                return f"Hata: '{file_path}' dosyası bulunamadı."
-            
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            # Çok uzun dosyalar için kırpma yapılabilir
-            return content[:3000] + ("\n[...dosya uzantısı kırpıldı...]" if len(content) > 3000 else "")
+            uname = platform.uname()
+            mem = psutil.virtual_memory()
+            info = (
+                f"İşletim Sistemi: {uname.system} {uname.release} ({uname.version})\n"
+                f"Bilgisayar Adı: {uname.node}\n"
+                f"İşlemci (CPU): {uname.processor}\n"
+                f"Toplam RAM: {round(mem.total / (1024.3 ** 3), 2)} GB\n"
+                f"Kullanılan RAM Oranı: %{mem.percent}"
+            )
+            return info
         except Exception as e:
-            return f"Dosya okuma hatası: {e}"
-
-    @classmethod
-    def execute_tool(cls, tool_name: str, argument: str) -> str:
-        """Belirtilen aracı ismine göre çalıştırır."""
-        if tool_name == "get_current_time":
-            return cls.get_current_time()
-        elif tool_name == "calculate_expression":
-            return cls.calculate_expression(argument)
-        elif tool_name == "read_local_file":
-            return cls.read_local_file(argument)
-        else:
-            return f"Bilinmeyen araç: {tool_name}"
+            return f"Sistem bilgisi alınırken hata oluştu: {str(e)}"
