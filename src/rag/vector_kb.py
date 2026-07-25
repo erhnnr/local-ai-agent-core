@@ -1,7 +1,9 @@
-import os
 import glob
-from sentence_transformers import SentenceTransformer
+import os
+
 import chromadb
+from sentence_transformers import SentenceTransformer
+
 
 class VectorKnowledgeBase:
     """

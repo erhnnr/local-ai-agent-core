@@ -1,9 +1,10 @@
+
 import streamlit as st
-import os
-from src.adapters.mock_client import MockClient
+
 from src.adapters.huggingface_client import HuggingFaceClient
-from src.database.db_manager import DatabaseManager
+from src.adapters.mock_client import MockClient
 from src.agents.agent_core import DecisionAgent
+from src.database.db_manager import DatabaseManager
 
 # Sayfa Yapılandırması
 st.set_page_config(
@@ -87,7 +88,7 @@ elif mode == "Geçmiş Kararlar (Veritabanı)":
         for idx, (prompt, response, timestamp) in enumerate(recent_records, 1):
             with st.expander(f"Kayıt #{idx} — {timestamp}"):
                 st.markdown(f"**Gönderilen Prompt:** `{prompt}`")
-                st.markdown(f"**Üretilen Yanıt:**")
+                st.markdown("**Üretilen Yanıt:**")
                 st.text(response)
     else:
         st.info("Henüz veritabanında kayıtlı bir karar bulunmuyor.")

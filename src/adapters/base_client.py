@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class BaseLLMClient(ABC):
     """
     Tüm LLM adaptörlerinin uyması gereken soyut arayüz (Interface).
@@ -17,4 +18,3 @@ class BaseLLMClient(ABC):
         Returns:
             str: Modelin ürettiği yanıt.
         """
-        pass

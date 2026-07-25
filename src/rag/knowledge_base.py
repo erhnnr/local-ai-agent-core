@@ -1,5 +1,6 @@
-import os
 import glob
+import os
+
 
 class KnowledgeBase:
     """
@@ -27,7 +28,7 @@ class KnowledgeBase:
                         # Basit anahtar kelime eşleşmesi (Gelişmiş aşamada vektör veritabanı eklenebilir)
                         if any(keyword.lower() in content.lower() for keyword in query.split()):
                             search_results.append(f"--- Kaynak Doküman: {filepath} ---\n{content[:1500]}\n")
-                except Exception as e:
+                except Exception:
                     continue
 
         if search_results:

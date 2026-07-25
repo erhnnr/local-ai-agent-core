@@ -1,5 +1,6 @@
 from src.adapters.base_client import BaseLLMClient
 
+
 class MockClient(BaseLLMClient):
     """
     İnternet veya harici motor gerektirmeyen, mimari testleri için 

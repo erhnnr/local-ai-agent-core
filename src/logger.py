@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def setup_logger(name: str = "LocalAIAgent") -> logging.Logger:
     """Proje genelinde kullanılacak standart ve renkli/düzenli loglama yapılandırması."""
     logger = logging.getLogger(name)

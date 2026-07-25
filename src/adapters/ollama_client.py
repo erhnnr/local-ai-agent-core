@@ -1,5 +1,7 @@
 import requests
+
 from src.adapters.base_client import BaseLLMClient
+
 
 class OllamaClient(BaseLLMClient):
     """

@@ -1,6 +1,9 @@
 import os
+
 import requests
+
 from src.adapters.base_client import BaseLLMClient
+
 
 class HuggingFaceClient(BaseLLMClient):
     """
@@ -16,18 +19,19 @@ class HuggingFaceClient(BaseLLMClient):
         if not self.api_token:
             raise ValueError("Hugging Face API Token bulunamadı! Lütfen token'ınızı tanımlayın.")
 
-    def generate_response(self, prompt: str) -> str:
-        headers = {"Authorization": f"Bearer {self.api_token}"}
-        payload = {
-            "inputs": prompt,
-            "parameters": {"max_new_tokens": 250, "return_full_text": False}
-        }
+    def generate_response(self, user_prompt: str) -> str:
+        url = f"https://api-inference.huggingface.co/models/{self.model_name}"
+        headers = {}
+        if self.api_token:
+            headers["Authorization"] = f"Bearer {self.api_token}"
+            
+        payload = {"inputs": user_prompt}
         
         try:
-            response = requests.post(self.api_url, headers=headers, json=payload, timeout=30)
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
+            data = response.json() # Veriyi burada 'data' değişkenine atıyoruz
             
-            # Hugging Face API bazen liste döner
             if isinstance(data, list) and len(data) > 0:
                 return data[0].get("generated_text", "Yanıt çözümlenemedi.")
             elif isinstance(data, dict):

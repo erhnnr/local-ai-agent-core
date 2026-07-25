@@ -1,6 +1,8 @@
 import platform
-import psutil
 from datetime import datetime
+
+import psutil
+
 
 class ToolRegistry:
     """Ajanın kullanabileceği tüm araçların (tools) kayıt ve yürütme merkezi."""
@@ -25,7 +27,7 @@ class ToolRegistry:
             with open(filepath, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
-            return f"Dosya okuma hatası: {str(e)}"
+            return f"Dosya okuma hatası: {e!s}"
 
     @staticmethod
     def get_system_info() -> str:
@@ -42,4 +44,4 @@ class ToolRegistry:
             )
             return info
         except Exception as e:
-            return f"Sistem bilgisi alınırken hata oluştu: {str(e)}"
+            return f"Sistem bilgisi alınırken hata oluştu: {e!s}"

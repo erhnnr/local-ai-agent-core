@@ -1,6 +1,6 @@
 from src.agents.tools import ToolRegistry
-from src.rag.vector_kb import VectorKnowledgeBase
 from src.logger import setup_logger
+from src.rag.vector_kb import VectorKnowledgeBase
 
 logger = setup_logger("DecisionAgent")
 
@@ -74,7 +74,7 @@ class DecisionAgent:
                 response_text = self.client.generate_response(user_prompt)
 
         except Exception as e:
-            error_msg = f"Üzgünüm, isteğinizi işlerken beklenmeyen bir hata oluştu: {str(e)}"
+            error_msg = f"Üzgünüm, isteğinizi işlerken beklenmeyen bir hata oluştu: {e!s}"
             logger.error(error_msg)
             response_text = f"[Hata Koruması]: {error_msg}"
 
