@@ -1,94 +1,122 @@
+import sys
+import os
+
+# Proje kök dizinini Python yoluna ekle
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
 
 import streamlit as st
-
-from src.adapters.huggingface_client import HuggingFaceClient
-from src.adapters.mock_client import MockClient
+import psutil
+import platform
+from datetime import datetime
 from src.agents.agent_core import DecisionAgent
-from src.database.db_manager import DatabaseManager
+from src.llm.local_client import LocalLLMClient
+import streamlit as st
+import psutil
+import platform
+from datetime import datetime
+from src.agents.agent_core import DecisionAgent
+from src.llm.local_client import LocalLLMClient
 
-# Sayfa Yapılandırması
+# --- 1. SAYFA YAPILANDIRMASI VE ÖZEL CSS ---
 st.set_page_config(
-    page_title="Evrensel Karar Motoru - Akıllı Ajan",
-    page_icon="🧠",
-    layout="wide"
+    page_title="Local AI Agent Core - Control Center",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Veritabanı Başlatma
-db = DatabaseManager()
+# Modern ve koyu ağırlıklı kurumsal tema için özel CSS
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+    }
+    .stChatInputContainer {
+        padding-bottom: 20px;
+    }
+    .metric-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Arayüz Yan Menü - Model ve Mod Seçimi
-st.sidebar.header("⚙️ Sistem ve Model Ayarları")
-selected_model_type = st.sidebar.selectbox(
-    "LLM Motoru Seçin",
-    ["Mock Model (Hızlı Test)", "Hugging Face (Qwen/Qwen2.5-7B-Instruct)"]
-)
+# --- 2. BAŞLANGIÇ VE STATE YÖNETİMİ ---
+@st.cache_resource
+def init_agent():
+    llm_client = LocalLLMClient()
+    return DecisionAgent(llm_client)
 
-# Seçilen modele göre istemciyi belirle
-if "Mock" in selected_model_type:
-    client = MockClient()
-else:
-    # Gerçek model istemcisi
-    client = HuggingFaceClient(model_name="Qwen/Qwen2.5-7B-Instruct")
+agent = init_agent()
 
-# Ajanı güncel istemci ile başlat
-agent = DecisionAgent(llm_client=client)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-mode = st.sidebar.radio("Çalışma Modu", ["Otonom Sohbet (Hafızalı)", "Geçmiş Kararlar (Veritabanı)"])
-
-# Arayüz Başlığı
-st.title("🧠 Evrensel Karar Motoru (Çoklu Model Desteği)")
-st.markdown(f"Aktif Model: **{selected_model_type}** | Otonom Araçlar ve Kalıcı Hafıza Aktif.")
-
-if mode == "Otonom Sohbet (Hafızalı)":
-    st.subheader("🤖 Ajan ile Sohbet Oturumu")
+# --- 3. YAN PANEL (SIDEBAR) - KONTROL MERKEZİ ---
+with st.sidebar:
+    st.image("https://img.icons8.com/fluency/96/artificial-intelligence.png", width=70)
+    st.title("AI Command Center")
+    st.caption("v2.0-core | Yerel Otonom Ekosistem")
     
-    # Sohbet geçmişini veritabanından yükle
-    if "messages" not in st.session_state:
-        db_history = db.get_chat_history(limit=50)
+    st.divider()
+    
+    # Ajan Modu / Rol Seçimi
+    st.subheader("🎯 Ajan Yapılandırması")
+    selected_mode = st.selectbox(
+        "Çalışma Modu (Router)",
+        ["Auto-Router (Akıllı Niyet)", "CoderAgent (Yazılım Uzmanı)", "ArchitectAgent (Sistem Mimarı)"]
+    )
+    
+    st.divider()
+    
+    # Canlı Sistem Kaynak Monitörü
+    st.subheader("💻 Donanım Monitörü")
+    mem = psutil.virtual_memory()
+    cpu_percent = psutil.cpu_percent(interval=None)
+    
+    st.markdown(f"""
+        <div class="metric-card">
+            <b>CPU Kullanımı:</b> %{cpu_percent}<br>
+            <b>RAM Kullanımı:</b> %{mem.percent} ({round(mem.used / (1024**3), 1)} GB / {round(mem.total / (1024**3), 1)} GB)
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.divider()
+    
+    # Sohbeti Temizle Butonu
+    if st.button("🗑️ Sohbet Geçmişini Temizle", use_container_width=True):
         st.session_state.messages = []
-        if db_history:
-            for role, content in db_history:
-                st.session_state.messages.append({"role": role, "content": content})
-        else:
-            welcome_msg = "Merhaba! Ben Evrensel Karar Motoru ajanıyım. Hangi modelle çalışmamı istersiniz?"
-            st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
-            db.save_chat_message("assistant", welcome_msg)
+        agent.chat_history = []
+        st.rerun()
 
-    # Sohbet geçmişini ekranda göster
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# --- 4. ANA EKRAN - SOHBET ARAYÜZÜ ---
+st.title("💬 Local AI Agent Ekosistemi")
+st.markdown("Bilgisayarınızda tamamen yerel ve güvenli çalışan otonom yapay zeka asistanı.")
 
-    # Kullanıcıdan yeni girdi al
-    if user_prompt := st.chat_input("Bir şeyler sorun (örn: 'Şu an saat kaç?')..."):
-        st.session_state.messages.append({"role": "user", "content": user_prompt})
-        db.save_chat_message("user", user_prompt)
-        
-        with st.chat_message("user"):
-            st.markdown(user_prompt)
+# Geçmiş mesajları ekranda göster
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-        # Ajan yanıtını üret (Seçilen model ve araçlar üzerinden)
-        with st.chat_message("assistant"):
-            with st.spinner(f"{selected_model_type} yanıt üretiyor..."):
-                response = agent.run(user_prompt)
-                
+# Kullanıcıdan girdi alma
+if prompt := st.chat_input("Komutunuzu veya sorunuzu yazın (Örn: 'app.py dosyasını oku' veya 'Antalya hava durumu')..."):
+    # Kullanıcı mesajını ekle ve göster
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Ajan yanıtı
+    with st.chat_message("assistant"):
+        with st.spinner("Ajan düşünüyor ve araçları çalıştırıyor..."):
+            # Eğer sidebar'dan manuel mod seçildiyse ona göre yönlendirilebilir, 
+            # şu an ana DecisionAgent (Master Router) tam otonom devrede.
+            response = agent.run(prompt)
             st.markdown(response)
             
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        db.save_chat_message("assistant", response)
-        db.save_decision(user_prompt, response)
-
-elif mode == "Geçmiş Kararlar (Veritabanı)":
-    st.subheader("📚 Kayıtlı Karar Geçmişi ve Loglar")
-    
-    limit = st.sidebar.slider("Gösterilecek Kayıt Sayısı", 1, 20, 5)
-    recent_records = db.get_recent_decisions(limit=limit)
-    
-    if recent_records:
-        for idx, (prompt, response, timestamp) in enumerate(recent_records, 1):
-            with st.expander(f"Kayıt #{idx} — {timestamp}"):
-                st.markdown(f"**Gönderilen Prompt:** `{prompt}`")
-                st.markdown("**Üretilen Yanıt:**")
-                st.text(response)
-    else:
-        st.info("Henüz veritabanında kayıtlı bir karar bulunmuyor.")
+    # Asistan yanıtını geçmişe kaydet
+    st.session_state.messages.append({"role": "assistant", "content": response})
