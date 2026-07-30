@@ -1,6 +1,7 @@
 import platform
 from datetime import datetime
-
+import json
+import urllib.request
 import psutil
 
 
@@ -15,6 +16,8 @@ class ToolRegistry:
             return ToolRegistry.read_local_file(arg)
         elif tool_name == "get_system_info":
             return ToolRegistry.get_system_info()
+        elif tool_name == "get_weather":
+            return ToolRegistry.get_weather(arg)
         return f"Hata: '{tool_name}' adında bir araç bulunamadı."
 
     @staticmethod
@@ -45,3 +48,19 @@ class ToolRegistry:
             return info
         except Exception as e:
             return f"Sistem bilgisi alınırken hata oluştu: {e!s}"
+
+    @staticmethod
+    def get_weather(city: str = "Antalya") -> str:
+        """Belirtilen şehir için anlık hava durumu bilgisini internet üzerinden çeker."""
+        try:
+            url = f"https://wttr.in/{city}?format=j1"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                current = data['current_condition'][0]
+                temp = current['temp_C']
+                desc = current['weatherDesc'][0]['value']
+                return f"Şehir: {city}\nSıcaklık: {temp}°C\nDurum: {desc}"
+        except Exception as e:
+            return f"Hava durumu alınamadı: {e!s}"
